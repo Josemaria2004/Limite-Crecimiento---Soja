@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modelo de Crecimiento de Soja</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f3f4f6;
+      margin: 0;
+      padding: 20px;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+    p.center {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 1rem;
+    }
+    .slider-container {
+      margin-bottom: 1.5rem;
+    }
+    .info-card {
+      background: #f9fafb;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      margin-top: 1rem;
+    }
+    canvas {
+      max-width: 100%;
+      height: 400px !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Modelo de Crecimiento de Soja</h2>
+    <p class="center">h(t) = (15t²)/(t²+10)</p>
+
+    <div class="slider-container">
+      <label for="range">Rango de tiempo (días): <span id="rangeValue">20</span></label>
+      <input type="range" id="range" min="5" max="50" value="20" style="width: 100%;" />
+    </div>
+
+    <canvas id="sojaChart"></canvas>
+
+    <div class="info-card">
+      <p><strong>Altura máxima teórica:</strong> 15 cm</p>
+      <p>lím[t→∞] h(t) = 15</p>
+    </div>
+
+    <div class="info-card">
+      <p><strong>Tiempo para alcanzar el 90%:</strong> <span id="tiempo90"></span> días</p>
+      <p>h(t) ≈ 13.5 cm</p>
+    </div>
+
+    <div class="info-card">
+      <h3>Análisis del modelo:</h3>
+      <p>
+        Este modelo logístico muestra que la planta de soja tiene un crecimiento lento al inicio, 
+        un período de crecimiento rápido en la fase intermedia, y luego se estabiliza al acercarse al límite máximo de 15 cm.
+      </p>
+      <p>
+        La planta alcanza el 90% de su altura máxima después de aproximadamente 
+        <span id="tiempoTexto"></span> días de crecimiento.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const ctx = document.getElementById("sojaChart").getContext("2d");
+    const rangeInput = document.getElementById("range");
+    const rangeValue = document.getElementById("rangeValue");
+    const tiempo90Span = document.getElementById("tiempo90");
+    const tiempoTexto = document.getElementById("tiempoTexto");
+
+    const calcularAltura = (t) => (15 * t * t) / (t * t + 10);
+
+    const calcularTiempoNoventa = () => {
+      const targetHeight = 15 * 0.9;
+      const t2 = (10 * targetHeight) / (15 - targetHeight);
+      return Math.sqrt(t2);
+    };
+
+    const alturaNoventa = 13.5;
+    const tiempoNoventa = calcularTiempoNoventa();
+
+    tiempo90Span.textContent = tiempoNoventa.toFixed(2);
+    tiempoTexto.textContent = tiempoNoventa.toFixed(2);
+
+    let chart;
+
+    const generarDatos = (timeRange) => {
+      const datos = [];
+      const step = timeRange / 40;
+      for (let t = 0; t <= timeRange; t += step) {
+        datos.push({ x: t, y: calcularAltura(t) });
+      }
+      return datos;
+    };
+
+    const renderChart = (timeRange) => {
+      const data = generarDatos(timeRange);
+
+      if (chart) chart.destroy();
+
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          datasets: [{
+            label: "Altura de la planta (cm)",
+            data: data,
+            borderColor: "#2563eb",
+            borderWidth: 2,
+            fill: false,
+            pointRadius: 0,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              type: 'linear',
+              title: { display: true, text: "Tiempo (días)" },
+              suggestedMin: 0,
+              suggestedMax: timeRange
+            },
+            y: {
+              title: { display: true, text: "Altura (cm)" },
+              suggestedMin: 0,
+              suggestedMax: 16
+            }
+          },
+          plugins: {
+            legend: { display: true },
+            annotation: {
+              annotations: {
+                maxHeight: {
+                  type: 'line',
+                  yMin: 15,
+                  yMax: 15,
+                  borderColor: '#dc2626',
+                  borderDash: [6, 6],
+                  borderWidth: 2,
+                  label: {
+                    content: 'Altura máxima: 15 cm',
+                    enabled: true,
+                    position: 'start'
+                  }
+                },
+                altura90: {
+                  type: 'line',
+                  yMin: alturaNoventa,
+                  yMax: alturaNoventa,
+                  borderColor: '#16a34a',
+                  borderDash: [6, 6],
+                  borderWidth: 2,
+                  label: {
+                    content: '90% Altura: 13.5 cm',
+                    enabled: true,
+                    position: 'start'
+                  }
+                },
+                tiempo90: {
+                  type: 'line',
+                  xMin: tiempoNoventa,
+                  xMax: tiempoNoventa,
+                  borderColor: '#ea580c',
+                  borderDash: [6, 6],
+                  borderWidth: 2,
+                  label: {
+                    content: `t ≈ ${tiempoNoventa.toFixed(2)} días`,
+                    enabled: true,
+                    position: 'end'
+                  }
+                }
+              }
+            }
+          }
+        },
+        plugins: [Chart.registry.getPlugin('annotation')]
+      });
+    };
+
+    rangeInput.addEventListener("input", () => {
+      const value = Number(rangeInput.value);
+      rangeValue.textContent = value;
+      renderChart(value);
+    });
+
+    // Cargar gráfico inicial
+    renderChart(Number(rangeInput.value));
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0"></script>
+</body>
+</html>
